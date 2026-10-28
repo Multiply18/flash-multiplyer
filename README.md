@@ -38,7 +38,7 @@
 
 ## 安装（普通用户）
 
-1. 到 [Releases](../../releases) 下载 **`Flash Multiplyer 完整版.zip`**
+1. 到 [Releases](../../releases) 下载 **`Flash.Multiplyer.zip`**（完整版，含宿主与 Flash 插件）
 2. 解压到任意目录
 3. 右键 `安装.ps1` → **使用 PowerShell 运行**
    （若被策略拦截：`powershell -NoProfile -ExecutionPolicy Bypass -File ".\安装.ps1"`）
@@ -52,7 +52,7 @@
 > 扩展 ID 由 `manifest.json` 的 `key` 固定为 `dcikaadaeajidejkoekdflmfdgeoldcb`，
 > 该 ID 已写入原生消息宿主的 `allowed_origins`，换电脑不用改配置。
 
-详细图文说明见 Release 包内的「安装说明.md」。
+详细图文说明见 Release 包内的「安装说明.md」。若只需要扩展本体（已装好宿主/插件），下载 `Flash-Multiplyer-extension-only.zip`。
 
 ---
 
