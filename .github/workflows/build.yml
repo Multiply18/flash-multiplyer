@@ -1,0 +1,461 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  repository_dispatch:
+
+jobs:
+  build-linux:
+    name: Build Host (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libasound2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --profile release-lto --package player-web --target x86_64-unknown-linux-gnu
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: flash-player-host-linux
+          path: target/x86_64-unknown-linux-gnu/release-lto/flash-player-host
+
+  build-macos:
+    name: Build Host (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --profile release-lto --package player-web --target x86_64-apple-darwin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: flash-player-host-macos
+          path: target/x86_64-apple-darwin/release-lto/flash-player-host
+
+  build-windows-64:
+    name: Build Host (Windows x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --profile release-lto --package player-web --target x86_64-pc-windows-msvc
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: flash-player-host-windows
+          path: target/x86_64-pc-windows-msvc/release-lto/flash-player-host.exe
+
+  build-windows-32:
+    name: Build Host (Windows x86)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --profile release-lto --package player-web --target i686-pc-windows-msvc
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: flash-player-host-windows-32
+          path: target/i686-pc-windows-msvc/release-lto/flash-player-host.exe
+
+  web-extension:
+    name: Build Web Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install tools
+        run: npm install -g crx web-ext
+
+      - name: Prepare Chrome extension directory
+        run: |
+          cp -r web-extension ext-stage
+          rm -f ext-stage/install-host.sh ext-stage/install-host.py
+
+      - name: Prepare Firefox extension directory
+        run: |
+          cp -r ext-stage ext-stage-firefox
+          jq 'del(.key) | .background = {"scripts": [.background.service_worker]}' \
+            ext-stage/manifest.json > ext-stage-firefox/manifest.json
+
+      # ---- Unsigned artifacts (always) ----
+
+      - name: Build unsigned Chrome ZIP
+        run: |
+          web-ext build --source-dir ext-stage --artifacts-dir . --filename web-extension.zip --overwrite-dest
+
+      - name: Build unsigned Firefox XPI
+        run: |
+          web-ext build --source-dir ext-stage-firefox --artifacts-dir . --filename web-extension.xpi --overwrite-dest
+
+      - name: Build unsigned CRX
+        run: crx pack ext-stage -o web-extension-unsigned.crx
+
+      - name: Upload unsigned ZIP
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-extension
+          path: web-extension.zip
+
+      - name: Upload XPI
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-extension-xpi
+          path: web-extension.xpi
+
+      - name: Upload unsigned CRX
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-extension-unsigned-crx
+          path: web-extension-unsigned.crx
+
+      # ---- Signed artifacts (master branch only) ----
+
+      - name: Write signing key
+        if: github.ref == 'refs/heads/master'
+        run: echo "${{ secrets.EXTENSION_PEM }}" > /tmp/extension.pem
+
+      - name: Build signed CRX
+        if: github.ref == 'refs/heads/master'
+        run: crx pack ext-stage -p /tmp/extension.pem -o web-extension-signed.crx
+
+      - name: Clean up signing key
+        if: always()
+        run: rm -f /tmp/extension.pem
+
+      - name: Upload signed CRX
+        if: github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-extension-signed-crx
+          path: web-extension-signed.crx
+
+  installer-linux:
+    name: Build Installer (Linux)
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install 7-Zip
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq p7zip-full
+
+      - name: Clone installer repository
+        run: git clone --depth 1 https://gitlab.com/cleanflash/installer.git installer-repo
+
+      - name: Download flash-player-host artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: flash-player-host-linux
+          path: native-host-artifact
+
+      - name: Download and extract Pepper Flash plugin
+        run: |
+          curl -sL -o ppapi.tar.gz "https://github.com/darktohka/clean-flash-builds/releases/download/v1.7/flash_player_patched_ppapi_linux.x86_64.tar.gz"
+          tar -xzf ppapi.tar.gz libpepflashplayer.so manifest.json
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: installer-repo/rust
+
+      - name: Create placeholder archives
+        working-directory: installer-repo/rust
+        run: |
+          touch crates/clean_flash_installer/cleanflash-linux.7z
+          touch crates/clean_flash_installer/cleanflash-macos.7z
+          touch crates/clean_flash_installer/cleanflash-win.7z
+
+      - name: Build uninstaller
+        working-directory: installer-repo/rust
+        run: cargo build --profile release-lto -p clean_flash_uninstaller
+
+      - name: Assemble archive contents
+        run: |
+          mkdir -p staging/{pp64,native-host-64,uninstaller}
+          cp libpepflashplayer.so staging/pp64/
+          cp manifest.json staging/pp64/
+          cp native-host-artifact/flash-player-host staging/native-host-64/
+          chmod +x staging/native-host-64/flash-player-host
+          cp installer-repo/rust/target/release-lto/clean_flash_uninstaller staging/uninstaller/
+          chmod +x staging/uninstaller/clean_flash_uninstaller
+
+      - name: Create cleanflash-linux.7z
+        working-directory: staging
+        run: 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../cleanflash-linux.7z *
+
+      - name: Build installer
+        working-directory: installer-repo/rust
+        run: |
+          cp ../../cleanflash-linux.7z crates/clean_flash_installer/cleanflash-linux.7z
+          cargo build --profile release-lto -p clean_flash_installer
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cleanflash-installer-linux
+          path: installer-repo/rust/target/release-lto/clean_flash_installer
+
+  installer-macos:
+    name: Build Installer (macOS)
+    needs: [build-macos]
+    runs-on: macos-latest
+
+    steps:
+      - name: Install 7-Zip
+        run: brew install p7zip
+
+      - name: Clone installer repository
+        run: git clone --depth 1 https://gitlab.com/cleanflash/installer.git installer-repo
+
+      - name: Download flash-player-host artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: flash-player-host-macos
+          path: native-host-artifact
+
+      - name: Download and extract Pepper Flash plugin
+        run: |
+          curl -sL -o ppapi.zip "https://github.com/darktohka/clean-flash-builds/releases/download/v1.51/ChineseFlash-PPAPI-PepperFlashPlayer.zip"
+          unzip ppapi.zip
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: installer-repo/rust
+
+      - name: Create placeholder archives
+        working-directory: installer-repo/rust
+        run: |
+          touch crates/clean_flash_installer/cleanflash-linux.7z
+          touch crates/clean_flash_installer/cleanflash-macos.7z
+          touch crates/clean_flash_installer/cleanflash-win.7z
+
+      - name: Build uninstaller
+        working-directory: installer-repo/rust
+        run: cargo build --profile release-lto --target x86_64-apple-darwin -p clean_flash_uninstaller
+
+      - name: Assemble archive contents
+        run: |
+          mkdir -p staging/{pp64,native-host-64,uninstaller}
+          cp flash.plugin/Contents/MacOS/PepperFlashPlayer staging/pp64/
+          cp manifest.json staging/pp64/
+          cp native-host-artifact/flash-player-host staging/native-host-64/
+          chmod +x staging/native-host-64/flash-player-host
+          cp installer-repo/rust/target/x86_64-apple-darwin/release-lto/clean_flash_uninstaller staging/uninstaller/
+          chmod +x staging/uninstaller/clean_flash_uninstaller
+
+      - name: Create cleanflash-macos.7z
+        working-directory: staging
+        run: 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../cleanflash-macos.7z *
+
+      - name: Build installer
+        working-directory: installer-repo/rust
+        run: |
+          cp ../../cleanflash-macos.7z crates/clean_flash_installer/cleanflash-macos.7z
+          cargo build --profile release-lto --target x86_64-apple-darwin -p clean_flash_installer
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cleanflash-installer-macos
+          path: installer-repo/rust/target/x86_64-apple-darwin/release-lto/clean_flash_installer
+
+  installer-windows-64:
+    name: Build Installer (Windows x64)
+    needs: [build-windows-64]
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Clone installer repository
+        run: git clone --depth 1 https://gitlab.com/cleanflash/installer.git installer-repo
+
+      - name: Download flash-player-host artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: flash-player-host-windows
+          path: native-host-artifact
+
+      - name: Download Clean Flash base archive
+        run: curl -sL -o cleanflash-base.7z "https://cloud.tohka.us/share/cleanflash.7z"
+
+      - name: Extract base archive
+        run: 7z x cleanflash-base.7z -ocleanflash-base
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: installer-repo/rust
+
+      - name: Create placeholder archives
+        working-directory: installer-repo/rust
+        run: |
+          touch crates/clean_flash_installer/cleanflash-linux.7z
+          touch crates/clean_flash_installer/cleanflash-macos.7z
+          touch crates/clean_flash_installer/cleanflash-win.7z
+
+      - name: Build uninstaller
+        working-directory: installer-repo/rust
+        run: cargo build --profile release-lto -p clean_flash_uninstaller
+
+      - name: Assemble archive contents
+        run: |
+          mkdir -p cleanflash-base/native-host-64
+          mkdir -p cleanflash-base/uninstaller
+          cp native-host-artifact/flash-player-host.exe cleanflash-base/native-host-64/
+          cp installer-repo/rust/target/release-lto/clean_flash_uninstaller.exe cleanflash-base/uninstaller/
+
+      - name: Create cleanflash-win.7z
+        working-directory: cleanflash-base
+        run: 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../cleanflash-win.7z *
+
+      - name: Build installer
+        working-directory: installer-repo/rust
+        run: |
+          cp ../../cleanflash-win.7z crates/clean_flash_installer/cleanflash-win.7z
+          cargo build --profile release-lto -p clean_flash_installer
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cleanflash-installer-windows-64
+          path: installer-repo/rust/target/release-lto/clean_flash_installer.exe
+
+  installer-windows-32:
+    name: Build Installer (Windows x86)
+    needs: [build-windows-32]
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Clone installer repository
+        run: git clone --depth 1 https://gitlab.com/cleanflash/installer.git installer-repo
+
+      - name: Download flash-player-host artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: flash-player-host-windows-32
+          path: native-host-artifact
+
+      - name: Download Clean Flash base archive
+        run: curl -sL -o cleanflash-base.7z "https://cloud.tohka.us/share/cleanflash.7z"
+      - name: Extract base archive
+        run: 7z x cleanflash-base.7z -ocleanflash-base
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: installer-repo/rust
+
+      - name: Create placeholder archives
+        working-directory: installer-repo/rust
+        run: |
+          touch crates/clean_flash_installer/cleanflash-linux.7z
+          touch crates/clean_flash_installer/cleanflash-macos.7z
+          touch crates/clean_flash_installer/cleanflash-win.7z
+
+      - name: Build uninstaller
+        working-directory: installer-repo/rust
+        run: cargo build --profile release-lto -p clean_flash_uninstaller
+
+      - name: Assemble archive contents
+        run: |
+          mkdir -p cleanflash-base/native-host-32
+          mkdir -p cleanflash-base/uninstaller
+          cp native-host-artifact/flash-player-host.exe cleanflash-base/native-host-32/
+          cp installer-repo/rust/target/release-lto/clean_flash_uninstaller.exe cleanflash-base/uninstaller/
+
+      - name: Create cleanflash-win.7z
+        working-directory: cleanflash-base
+        run: 7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on ../cleanflash-win.7z *
+
+      - name: Build installer
+        working-directory: installer-repo/rust
+        run: |
+          cp ../../cleanflash-win.7z crates/clean_flash_installer/cleanflash-win.7z
+          cargo build --profile release-lto -p clean_flash_installer
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: cleanflash-installer-windows-32
+          path: installer-repo/rust/target/release-lto/clean_flash_installer.exe
