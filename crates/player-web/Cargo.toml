@@ -1,0 +1,38 @@
+[package]
+name = "player-web"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "Native Messaging host for the Flash player browser extension"
+
+[[bin]]
+name = "flash-player-host"
+path = "src/main.rs"
+
+[dependencies]
+player-core = { workspace = true }
+player-ui-traits = { workspace = true }
+ppapi-host = { workspace = true, features = ["fs-os", "gl-glow"] }
+http-reqwest = { workspace = true }
+tls-rustls = { workspace = true }
+audio-cpal = { workspace = true }
+file-chooser-rfd = { workspace = true }
+ppapi-sys = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+lz4_flex = "0.13"
+parking_lot = "0.12"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    "Win32_System_Console",
+    "Win32_System_Threading",
+] }

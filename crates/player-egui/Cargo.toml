@@ -1,0 +1,22 @@
+[package]
+name = "player-egui"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+description = "egui/eframe frontend for the Flash player"
+
+[dependencies]
+player-core = { workspace = true }
+player-ui-traits = { workspace = true }
+ppapi-host = { workspace = true, features = ["fs-os", "clipboard-arboard", "gl-glow"] }
+http-reqwest = { workspace = true }
+tls-rustls = { workspace = true }
+audio-cpal = { workspace = true }
+gl-glow = { workspace = true }
+file-chooser-rfd = { workspace = true }
+ppapi-sys = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+eframe = "0.33"
+egui = "0.33"
+parking_lot = "0.12"

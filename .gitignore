@@ -1,0 +1,21 @@
+airsdk.dev
+test1
+chrome
+target
+*.so
+*.key
+*.zst
+*.so
+.cxx
+build
+proot-build
+# --- Flash Multiplyer ---
+target/
+*.exe
+*.dll
+*.pdb
+*.zip
+logs/
+*.log
+.DS_Store
+Thumbs.db

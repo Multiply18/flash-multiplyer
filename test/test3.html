@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <title>家园守卫战</title>
+            <link rel="stylesheet" type="text/css" href="//cdn-jy1.fengshy.com//css/basic.css?v=0.1" />
+            <link rel="stylesheet" type="text/css" href="//cdn-jy1.fengshy.com//css/xiaoyou.css?v=0.14" />
+            <script type="text/javascript" src="//cdn-jy1.fengshy.com/scripts/function.js?v=0.25"></script>
+            <script type="text/javascript" src="//cdn-jy1.fengshy.com/scripts/swfobject.js?v=1.00"></script>
+            <script type="text/javascript" src="//cdn-jy1.fengshy.com/scripts/jquery.js?v=1.52"></script>
+            <script type="text/javascript" src="//cdn-jy1.fengshy.com/scripts/socket.io.min.js"></script>
+    </head>
+    <body>
+<div class="main">
+    <div id="msgBox" style="position:absolute;z-index:1000;left:36px; top:160px;"></div>
+    <script>
+        //<!-- For version detection, set to min. required Flash Player version, or 0 (or 0.0.0 ), for no versi on detection. -->
+        var swfVersionStr = "10 .0.0";
+        //< !-- To use express install, set to playerProductInstall.swf, otherwise the emptyst ring.-- >
+        var xiSwfUrlStr = "";
+        var flashvars = {"platform":"xiaoyou","swf":"%2F%2Fcdn-jy1.fengshy.com%2Fflash%2Fay%2Fjiayuan.swf%3Fv%3D48.307","info":1,"effect_mute":0,"music_mute":0,"magic_effect":1,"gateway":"http:\/\/qzone.gz.1251013877.clb.myqcloud.com\/gateway.php","cfg_path":"\/\/cdn-jy1.fengshy.com\/","preload_ad":"","link_list_url":"2.62","json_conf_ver":"0.1"};
+        var params = {};
+        params.quality = "high";
+        params.bgcolor = "#FFFFFF";
+        params.allowscriptaccess = "always";
+        params.allowfullscreen = "true";
+        params.wmode = "opaque";
+        params.menu = "false";
+        var attributes = {};
+        attributes.id = "flashPlayer";
+        attributes.name = "flashPlayer";
+        attributes.align = "middle";
+        swfobject.embedSWF
+                ("Hello.swf", "flashMain", "760", "570",
+                        swfVersionStr, xiSwfUrlStr,
+                        flashvars, params, attributes
+                        );
+    </script>
+    <div style="background-color:#ffffff; width:760px; height:575px; margin:0px auto;">
+        <div id="flashMain">
+            <p>
+                To view this page ensure that Adobe Flash Player version
+                10.0.0 or greater is installed.
+            </p>
+            <script type="text/javascript">
+                var pageHost = ((document.location.protocol == "https:") ? "https://" : "http://");
+                document.write("<a href='http://www.adobe.com/go/getflashplayer'><img src='"
+                        + pageHost + "www.adobe.com/images/shared/download_buttons/get_flash_player.gif' alt='Get Adobe Flash player' /></a>");
+            </script>
+        </div>
+    </div>
+    <noscript>
+    <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" codebase="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=9,0,28,0" width="760" height="570" id="flashPlayer">
+        <param name="movie" value="Hello.swf" />
+        <param name="flashvars" value="Array" />
+        <param name="menu" value="false" />
+        <param name="quality" value="high" />
+        <param name="allowscriptaccess" value="always" />
+        <param name="bgcolor" value="#FFFFFF" />
+        <param name="wmode" value="opaque" />
+        <embed src="Hello.swf" flashvars="Array" menu="false" bgcolor="#FFFFFF" quality="high" wmode="opaque" allowscriptaccess="always" type="application/x-shockwave-flash" width="760" height="570"></embed>
+    </object>
+    </noscript>
+    <div style="background:#f9f9f9; border: 1px dotted #ccc; height:25px; text-align: center; line-height: 25px;">
+        家园守卫战版号【科技与数字[2011]151号】，版本：1.4.74 beta<!--&lt;<a href="http://qbar.qq.com/application/1574899.htm" target="_blank">版本历史</a>&gt;-->
+        ，您的家园编号（ID）：74776376    </div>
+    <div class="blank10"></div>
+    <div class="text_c">
+        声明：此应用由“饭后游戏”提供<br />
+    </div>
+    <div class="blank20"></div>
+    <div class="text_c gray"><span style="color:red;">健康忠告：</span>抵制不良游戏，拒绝盗版游戏。注意自我保护，预防受骗上当。适度游戏益脑，沉迷游戏伤身。合理安排时间，享受健康生活。</div>
+</div>
+<script type="text/javascript">
+    if (window.fusion && typeof (fusion.LIB.log) == 'function') {
+        fusion.LIB.log = function () {};
+    }
+    function writeLog() {
+        if (console && console.log) {
+            if (typeof (console.log.apply) == 'function') {
+                console.log.apply(console, arguments);
+            } else {
+                console.log(arguments[0]);
+            }
+        }
+    }
+    function initFinishedCallback() {
+            var uid = '74776376';
+            var socketHost = 'chat.gz.1251013877.clb.myqcloud.com';
+            var socketPort = 8011;
+            var transports = typeof (window.WebSocket) == 'function' ? ['websocket', 'polling'] : ['polling', 'websocket'];
+            var socket = io('ws://' + socketHost + ':' + socketPort + '/?user_id=74776376&time=1793187900&rand=107472&sign=666cd88b71c310f894de9ab9a302c257', {
+                'force new connection': true,
+                transports: transports,
+                reconnection: true,
+                reconnectionDelay: 2000,
+                reconnectionDelayMax: 5000,
+                timeout: 20000,
+                reconnectionAttempts: 6
+            });
+            socket.on('connect', function () {
+                writeLog('socket connected, sid=' + socket.id);
+                socket.emit('data', {cmd: 'login', uid: uid});
+            });
+            socket.on('data', function (data) {
+                writeLog('receive data', data);
+                var flashObj = document.getElementById('flashPlayer');
+                if (flashObj && typeof (flashObj.notifyGame) == 'function') {
+                    writeLog('notify game');
+                    flashObj.notifyGame(data);
+                }
+            });
+            window.beforeunload = function () {
+                writeLog('window unload, close socket');
+                socket.close();
+            };
+    }
+</script>
+<script></script><div class="blank10"></div>
+<script>setTimeout(function(){var o=document.querySelector("#flashMain object, #flashMain embed");var v="?";try{var j=swfobject.getFlashPlayerVersion();v=j.major+"."+j.minor+"."+j.release;}catch(e){v="err"}fetch("http://127.0.0.1:8087/beacon?obj="+(o?1:0)+"&ver="+encodeURIComponent(v));},3000);</script></body>
+</html>
